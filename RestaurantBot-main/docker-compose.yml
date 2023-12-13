@@ -1,0 +1,54 @@
+version: "3"
+
+services:
+  flask_app:
+      container_name: flask_app
+      build:
+        context: ./flask-app
+      ports:
+        - 5000:5000
+      volumes:
+        - ./flask-app:/app
+      networks:
+        - my-network
+      depends_on:
+        - rasa_server
+      environment:
+        - RASA_SERVER_URL=http://localhost:5005/webhooks/rest/webhook
+        #- RASA_SERVER_URL=https://s-4-m-a-n-miniature-barnacle-7r6qvg4gwg7fxr5x-5005.preview.app.github.dev/
+
+          # - RASA_SERVER_URL=http://rasa_server:5005/
+
+  rasa_server:
+    container_name: rasa_server
+    build:
+      context: ./rasa-chatbot
+    ports:
+      - 5005:5005
+    depends_on:
+      - rasa_actions
+    networks:
+      - my-network
+    volumes:
+      - ./rasa-chatbot:/app
+      #- ./rasa-chatbot/models:/app/models
+    environment:
+      - RASA_ACTIONS_ENDPOINT=http://rasa_actions:5055/webhook
+
+  rasa_actions:
+    container_name: rasa_actions
+    build:
+      context: ./rasa-actions
+    ports:
+      - 5055:5055
+    # volumes:
+    #   - ./rasa-actions:/app     #throws error due to automatic creation of entrypoints.sh
+    networks:
+      - my-network
+    environment:
+      - base_URL=http://flask_app:5000
+      # - base_URL=https://ab1f-103-232-154-25.ngrok-free.app
+
+networks:
+  my-network:
+    driver: bridge
